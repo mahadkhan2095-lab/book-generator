@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ book.title }}</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: Arial, sans-serif; background: #f4f4f4; padding: 40px; }
+        h1 { color: #333; margin-bottom: 6px; }
+        .subtitle { color: #777; margin-bottom: 30px; }
+        .card { background: white; padding: 24px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin-bottom: 24px; }
+        .outline-text { white-space: pre-wrap; font-size: 14px; color: #444; max-height: 300px; overflow-y: auto; background: #f9f9f9; padding: 16px; border-radius: 6px; }
+        button { padding: 9px 20px; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; margin-right: 8px; }
+        .btn-green { background: #4CAF50; color: white; }
+        .btn-blue { background: #2196F3; color: white; }
+        .btn-orange { background: #ff9800; color: white; }
+        .btn-red { background: #f44336; color: white; }
+        button:hover { opacity: 0.9; }
+        .badge { padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: bold; display: inline-block; }
+        .pending { background: #fff3cd; color: #856404; }
+        .approved { background: #d4edda; color: #155724; }
+        .needs_changes { background: #f8d7da; color: #721c24; }
+        .chapter { background: white; padding: 20px; border-radius: 8px; margin-bottom: 16px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+        .chapter-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+        .chapter-content { white-space: pre-wrap; font-size: 13px; color: #555; max-height: 200px; overflow-y: auto; background: #f9f9f9; padding: 12px; border-radius: 6px; margin-bottom: 12px; }
+        .chapter-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+        input[type="text"], input[type="email"] { padding: 8px 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; }
+        .success-msg { background: #d4edda; color: #155724; padding: 12px 20px; border-radius: 8px; margin-bottom: 20px; }
+        a.back { text-decoration: none; color: #2196F3; display: inline-block; margin-bottom: 20px; }
+    </style>
+</head>
+<body>
+    <a class="back" href="/">← Back to Home</a>
+    <h1>{{ book.title }}</h1>
+    <p class="subtitle">Status: <span class="badge {{ book.status_outline_notes }}">{{ book.status_outline_notes }}</span></p>
+
+    {% if request.query_params.get('compiled') %}
+    <div class="success-msg">✅ Book compiled and emailed successfully!</div>
+    {% endif %}
+
+    <!-- Outline -->
+    <div class="card">
+        <h2 style="margin-bottom:14px;">📋 Outline</h2>
+        <div class="outline-text">{{ book.outline }}</div>
+        <br>
+        {% if book.status_outline_notes == "pending" %}
+        <form action="/book/{{ book.id }}/approve-outline" method="post" style="display:inline;">
+            <button class="btn-green" type="submit">✅ Approve Outline & Parse Chapters</button>
+        </form>
+        {% endif %}
+    </div>
+
+    <!-- Chapters -->
+    {% if chapters %}
+    <div class="card">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+            <h2>📖 Chapters</h2>
+            {% if book.status_outline_notes == "approved" %}
+            <form action="/book/{{ book.id }}/generate-chapter" method="post">
+                <button class="btn-blue" type="submit">⚡ Generate Next Chapter</button>
+            </form>
+            {% endif %}
+        </div>
+
+        {% for chapter in chapters %}
+        <div class="chapter">
+            <div class="chapter-header">
+                <strong>Chapter {{ chapter.chapter_number }}: {{ chapter.title }}</strong>
+                <span class="badge {{ chapter.chapter_notes_status }}">{{ chapter.chapter_notes_status }}</span>
+            </div>
+
+            {% if chapter.content %}
+            <div class="chapter-content">{{ chapter.content }}</div>
+            <div class="chapter-actions">
+                {% if chapter.chapter_notes_status != "approved" %}
+                <form action="/chapter/{{ chapter.id }}/approve" method="post">
+                    <input type="hidden" name="book_id" value="{{ book.id }}">
+                    <button class="btn-green" type="submit">✅ Approve</button>
+                </form>
+                <form action="/chapter/{{ chapter.id }}/needs-changes" method="post" style="display:flex; gap:8px;">
+                    <input type="hidden" name="book_id" value="{{ book.id }}">
+                    <input type="text" name="notes" placeholder="Enter change notes...">
+                    <button class="btn-red" type="submit">🔄 Needs Changes</button>
+                </form>
+                {% endif %}
+            </div>
+            {% else %}
+            <p style="color:#aaa; font-size:13px;">Not generated yet.</p>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Compile & Export -->
+    {% set all_approved = chapters | selectattr("chapter_notes_status", "equalto", "approved") | list | length == chapters | length and chapters | length > 0 %}
+    {% if all_approved %}
+    <div class="card">
+        <h2 style="margin-bottom:14px;">🚀 Compile & Export</h2>
+        <form action="/book/{{ book.id }}/compile" method="post" style="display:flex; gap:10px; align-items:center;">
+            <input type="email" name="email" placeholder="Enter email to receive book" required>
+            <button class="btn-green" type="submit">📧 Compile & Send</button>
+        </form>
+        {% if book.final_review_notes_status == "approved" %}
+        <br>
+        <a href="/book/{{ book.id }}/download"><button class="btn-blue">⬇️ Download DOCX</button></a>
+        <a href="/book/{{ book.id }}/download-pdf"><button class="btn-red">⬇️ Download PDF</button></a>
+        {% endif %}
+    </div>
+    {% endif %}
+
+</body>
+</html>

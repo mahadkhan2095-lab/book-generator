@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Book Generator</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: Arial, sans-serif; background: #f4f4f4; padding: 40px; }
+        h1 { margin-bottom: 30px; color: #333; }
+        .card { background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); max-width: 600px; margin-bottom: 30px; }
+        input, textarea { width: 100%; padding: 10px; margin: 10px 0 20px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; }
+        textarea { height: 100px; resize: vertical; }
+        button { background: #4CAF50; color: white; padding: 10px 24px; border: none; border-radius: 6px; cursor: pointer; font-size: 15px; }
+        button:hover { background: #45a049; }
+        .book-list { max-width: 600px; }
+        .book-item { background: white; padding: 16px 20px; border-radius: 8px; margin-bottom: 12px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); display: flex; justify-content: space-between; align-items: center; }
+        .book-item a { text-decoration: none; color: #2196F3; font-weight: bold; }
+        .badge { padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: bold; }
+        .pending { background: #fff3cd; color: #856404; }
+        .approved { background: #d4edda; color: #155724; }
+    </style>
+</head>
+<body>
+    <h1>📚 Book Generator</h1>
+
+    <div class="card">
+        <h2 style="margin-bottom:16px;">Create New Book</h2>
+        <form action="/create-book" method="post">
+            <label>Book Title</label>
+            <input type="text" name="title" placeholder="Enter book title" required>
+            <label>Notes / Instructions</label>
+            <textarea name="notes" placeholder="Describe what the book should cover..." required></textarea>
+            <button type="submit">Generate Outline</button>
+        </form>
+    </div>
+
+    {% if books %}
+    <div class="book-list">
+        <h2 style="margin-bottom:16px;">Existing Books</h2>
+        {% for book in books %}
+        <div class="book-item">
+            <a href="/book/{{ book.id }}">{{ book.title }}</a>
+            <span class="badge {{ book.status_outline_notes }}">{{ book.status_outline_notes }}</span>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+</body>
+</html>

@@ -1,0 +1,8 @@
+.env
+venv/
+__pycache__/
+*.pyc
+final_book.txt
+final_book.docx
+final_book.pdf
+book_data.json
