@@ -2,112 +2,530 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>{{ book.title }}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ book.title }} — BookForge</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Syne:wght@700;800&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        bg: '#020309',
+                        surface: '#080c1a',
+                        surface2: '#0d1228',
+                        neon: '#8b5cf6',
+                        cyan: '#06b6d4',
+                        pink: '#ec4899',
+                    },
+                    fontFamily: {
+                        sans: ['Space Grotesk', 'sans-serif'],
+                        syne: ['Syne', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: Arial, sans-serif; background: #f4f4f4; padding: 40px; }
-        h1 { color: #333; margin-bottom: 6px; }
-        .subtitle { color: #777; margin-bottom: 30px; }
-        .card { background: white; padding: 24px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin-bottom: 24px; }
-        .outline-text { white-space: pre-wrap; font-size: 14px; color: #444; max-height: 300px; overflow-y: auto; background: #f9f9f9; padding: 16px; border-radius: 6px; }
-        button { padding: 9px 20px; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; margin-right: 8px; }
-        .btn-green { background: #4CAF50; color: white; }
-        .btn-blue { background: #2196F3; color: white; }
-        .btn-orange { background: #ff9800; color: white; }
-        .btn-red { background: #f44336; color: white; }
-        button:hover { opacity: 0.9; }
-        .badge { padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: bold; display: inline-block; }
-        .pending { background: #fff3cd; color: #856404; }
-        .approved { background: #d4edda; color: #155724; }
-        .needs_changes { background: #f8d7da; color: #721c24; }
-        .chapter { background: white; padding: 20px; border-radius: 8px; margin-bottom: 16px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
-        .chapter-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
-        .chapter-content { white-space: pre-wrap; font-size: 13px; color: #555; max-height: 200px; overflow-y: auto; background: #f9f9f9; padding: 12px; border-radius: 6px; margin-bottom: 12px; }
-        .chapter-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-        input[type="text"], input[type="email"] { padding: 8px 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; }
-        .success-msg { background: #d4edda; color: #155724; padding: 12px 20px; border-radius: 8px; margin-bottom: 20px; }
-        a.back { text-decoration: none; color: #2196F3; display: inline-block; margin-bottom: 20px; }
+        /* Grid BG */
+        .grid-bg {
+            position: fixed; inset: 0; z-index: 0;
+            background-image:
+                linear-gradient(rgba(109,40,217,0.04) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(109,40,217,0.04) 1px, transparent 1px);
+            background-size: 48px 48px;
+            mask-image: radial-gradient(ellipse 80% 80% at 50% 0%, black 30%, transparent 100%);
+            pointer-events: none;
+        }
+        .orb {
+            position: fixed; border-radius: 50%;
+            filter: blur(80px); pointer-events: none; z-index: 0;
+        }
+        .orb-1 {
+            width: 500px; height: 500px;
+            background: radial-gradient(circle, rgba(109,40,217,0.1), transparent 70%);
+            top: -150px; left: -100px;
+            animation: floatOrb 12s ease-in-out infinite alternate;
+        }
+        .orb-2 {
+            width: 400px; height: 400px;
+            background: radial-gradient(circle, rgba(6,182,212,0.07), transparent 70%);
+            bottom: 0; right: -100px;
+            animation: floatOrb 15s ease-in-out infinite alternate-reverse;
+        }
+        @keyframes floatOrb {
+            from { transform: translate(0,0) scale(1); }
+            to   { transform: translate(20px,15px) scale(1.05); }
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 4px; height: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(139,92,246,0.3); border-radius: 10px; }
+
+        /* Glow top border */
+        .glow-border::before {
+            content: '';
+            position: absolute; top: 0; left: 0; right: 0; height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(139,92,246,0.6), transparent);
+        }
+
+        /* Progress ring */
+        .ring-progress { transform: rotate(-90deg); }
+        .ring-track { fill: none; stroke: rgba(255,255,255,0.05); stroke-width: 4; }
+        .ring-fill {
+            fill: none;
+            stroke: url(#ringGrad);
+            stroke-width: 4;
+            stroke-linecap: round;
+            transition: stroke-dashoffset 1s cubic-bezier(0.4,0,0.2,1);
+        }
+
+        /* Sidebar */
+        .sidebar {
+            position: fixed;
+            top: 68px; left: 0; bottom: 0;
+            width: 280px;
+            background: rgba(8,12,26,0.95);
+            backdrop-filter: blur(20px);
+            border-right: 1px solid rgba(255,255,255,0.05);
+            overflow-y: auto;
+            z-index: 100;
+            padding: 24px 16px;
+        }
+
+        /* Chapter item in sidebar */
+        .ch-sidebar-item {
+            display: flex; align-items: center; gap: 10px;
+            padding: 10px 12px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-bottom: 4px;
+            border: 1px solid transparent;
+            text-decoration: none;
+        }
+        .ch-sidebar-item:hover {
+            background: rgba(139,92,246,0.08);
+            border-color: rgba(139,92,246,0.15);
+        }
+        .ch-sidebar-item.active {
+            background: rgba(139,92,246,0.12);
+            border-color: rgba(139,92,246,0.25);
+        }
+        .ch-num-badge {
+            width: 24px; height: 24px; border-radius: 6px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 10px; font-weight: 700;
+            flex-shrink: 0;
+        }
+        .ch-num-badge.approved { background: rgba(16,185,129,0.15); color: #10b981; }
+        .ch-num-badge.pending { background: rgba(245,158,11,0.15); color: #f59e0b; }
+        .ch-num-badge.needs_changes { background: rgba(239,68,68,0.15); color: #ef4444; }
+        .ch-num-badge.empty { background: rgba(255,255,255,0.05); color: #475569; }
+
+        /* Main content */
+        .content-area {
+            margin-left: 280px;
+            min-height: 100vh;
+            padding: 24px 32px 80px;
+        }
+
+        /* Card */
+        .card {
+            background: rgba(8,12,26,0.8);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 20px;
+            padding: 28px;
+            position: relative;
+            overflow: hidden;
+            transition: border-color 0.3s, box-shadow 0.3s;
+            margin-bottom: 20px;
+        }
+        .card:hover {
+            border-color: rgba(139,92,246,0.2);
+            box-shadow: 0 0 40px rgba(109,40,217,0.06);
+        }
+
+        /* Inputs */
+        .inp {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.07);
+            border-radius: 10px;
+            padding: 11px 14px;
+            font-size: 13px;
+            color: #f1f5f9;
+            font-family: 'Space Grotesk', sans-serif;
+            outline: none;
+            transition: all 0.2s;
+            width: 100%;
+        }
+        .inp:focus {
+            border-color: rgba(139,92,246,0.5);
+            background: rgba(139,92,246,0.04);
+            box-shadow: 0 0 0 3px rgba(109,40,217,0.08);
+        }
+        .inp::placeholder { color: #1e293b; }
+
+        /* Buttons */
+        .btn {
+            display: inline-flex; align-items: center; gap: 7px;
+            padding: 10px 18px; border: none; border-radius: 10px;
+            cursor: pointer; font-size: 13px; font-weight: 600;
+            font-family: 'Space Grotesk', sans-serif;
+            transition: all 0.2s; letter-spacing: 0.2px;
+            text-decoration: none; white-space: nowrap;
+        }
+        .btn:hover { transform: translateY(-1px); }
+        .btn:active { transform: translateY(0); }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #6d28d9, #7c3aed, #8b5cf6);
+            color: white;
+            box-shadow: 0 4px 14px rgba(109,40,217,0.3);
+        }
+        .btn-primary:hover { box-shadow: 0 8px 24px rgba(109,40,217,0.45); }
+
+        .btn-success {
+            background: rgba(16,185,129,0.12);
+            color: #10b981;
+            border: 1px solid rgba(16,185,129,0.2);
+        }
+        .btn-success:hover { background: rgba(16,185,129,0.2); }
+
+        .btn-danger {
+            background: rgba(239,68,68,0.1);
+            color: #ef4444;
+            border: 1px solid rgba(239,68,68,0.2);
+        }
+        .btn-danger:hover { background: rgba(239,68,68,0.18); }
+
+        .btn-info {
+            background: rgba(6,182,212,0.1);
+            color: #06b6d4;
+            border: 1px solid rgba(6,182,212,0.2);
+        }
+        .btn-info:hover { background: rgba(6,182,212,0.18); }
+
+        .btn-ghost {
+            background: rgba(255,255,255,0.04);
+            color: #94a3b8;
+            border: 1px solid rgba(255,255,255,0.07);
+        }
+        .btn-ghost:hover { border-color: rgba(139,92,246,0.3); color: #c4b5fd; }
+
+        /* Badge */
+        .badge {
+            font-size: 10px; font-weight: 700;
+            padding: 4px 10px; border-radius: 100px;
+            text-transform: uppercase; letter-spacing: 0.8px;
+        }
+        .badge.pending { background: rgba(245,158,11,0.1); color: #f59e0b; border: 1px solid rgba(245,158,11,0.2); }
+        .badge.approved { background: rgba(16,185,129,0.1); color: #10b981; border: 1px solid rgba(16,185,129,0.2); }
+        .badge.needs_changes { background: rgba(239,68,68,0.1); color: #ef4444; border: 1px solid rgba(239,68,68,0.2); }
+
+        /* Alert */
+        .alert-success {
+            display: flex; align-items: center; gap: 12px;
+            padding: 16px 20px; border-radius: 14px; margin-bottom: 24px;
+            background: rgba(16,185,129,0.08);
+            border: 1px solid rgba(16,185,129,0.2);
+            color: #10b981; font-size: 14px; font-weight: 500;
+            animation: slideDown 0.4s ease both;
+        }
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-10px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Chapter card */
+        .chapter-card {
+            background: rgba(255,255,255,0.02);
+            border: 1px solid rgba(255,255,255,0.05);
+            border-radius: 14px; padding: 20px;
+            margin-bottom: 12px;
+            transition: all 0.2s;
+            scroll-margin-top: 100px;
+        }
+        .chapter-card:hover { border-color: rgba(139,92,246,0.15); }
+        .chapter-card.approved-card { border-color: rgba(16,185,129,0.15); background: rgba(16,185,129,0.02); }
+        .chapter-card.needs-card { border-color: rgba(239,68,68,0.15); }
+
+        .ch-content-box {
+            background: rgba(255,255,255,0.02);
+            border: 1px solid rgba(255,255,255,0.04);
+            border-radius: 10px; padding: 14px 16px;
+            font-size: 12px; color: #64748b;
+            white-space: pre-wrap; max-height: 160px;
+            overflow-y: auto; line-height: 1.8;
+            margin-bottom: 14px; font-family: 'Inter', sans-serif;
+        }
+
+        /* Nav */
+        .topnav {
+            position: fixed; top: 0; left: 0; right: 0; z-index: 200;
+            height: 68px;
+            background: rgba(2,3,9,0.9);
+            backdrop-filter: blur(24px);
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            display: flex; align-items: center;
+            justify-content: space-between;
+            padding: 0 32px;
+        }
+        .topnav-left { display: flex; align-items: center; gap: 16px; }
+        .logo {
+            font-family: 'Syne', sans-serif; font-size: 20px; font-weight: 800;
+            background: linear-gradient(135deg, #c4b5fd, #8b5cf6, #06b6d4);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            text-decoration: none;
+        }
+        .sep { color: rgba(255,255,255,0.1); }
+        .page-title-nav {
+            font-size: 14px; font-weight: 500; color: #64748b;
+            max-width: 280px; overflow: hidden;
+            text-overflow: ellipsis; white-space: nowrap;
+        }
+        .back-btn {
+            display: flex; align-items: center; gap: 6px;
+            color: #64748b; text-decoration: none; font-size: 13px;
+            font-weight: 500; padding: 7px 14px;
+            border-radius: 9px; border: 1px solid rgba(255,255,255,0.06);
+            transition: all 0.2s;
+        }
+        .back-btn:hover { color: #c4b5fd; border-color: rgba(139,92,246,0.3); background: rgba(139,92,246,0.06); }
+
+        /* Compile card */
+        .compile-card {
+            background: linear-gradient(135deg, rgba(109,40,217,0.08), rgba(6,182,212,0.04));
+            border: 1px solid rgba(139,92,246,0.2);
+        }
+
+        /* Progress bar */
+        .prog-track { height: 5px; background: rgba(255,255,255,0.05); border-radius: 10px; overflow: hidden; }
+        .prog-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #6d28d9, #8b5cf6, #06b6d4);
+            border-radius: 10px;
+            transition: width 0.8s cubic-bezier(0.4,0,0.2,1);
+            box-shadow: 0 0 12px rgba(139,92,246,0.5);
+        }
+
+        /* Fade in */
+        .fade-in { animation: fadeUp 0.5s ease both; }
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(16px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
     </style>
 </head>
-<body>
-    <a class="back" href="/">← Back to Home</a>
-    <h1>{{ book.title }}</h1>
-    <p class="subtitle">Status: <span class="badge {{ book.status_outline_notes }}">{{ book.status_outline_notes }}</span></p>
+<body class="bg-bg text-slate-100 font-sans">
 
-    {% if request.query_params.get('compiled') %}
-    <div class="success-msg">✅ Book compiled and emailed successfully!</div>
-    {% endif %}
+<div class="grid-bg"></div>
+<div class="orb orb-1"></div>
+<div class="orb orb-2"></div>
 
-    <!-- Outline -->
-    <div class="card">
-        <h2 style="margin-bottom:14px;">📋 Outline</h2>
-        <div class="outline-text">{{ book.outline }}</div>
-        <br>
-        {% if book.status_outline_notes == "pending" %}
-        <form action="/book/{{ book.id }}/approve-outline" method="post" style="display:inline;">
-            <button class="btn-green" type="submit">✅ Approve Outline & Parse Chapters</button>
-        </form>
-        {% endif %}
+<!-- Top Nav -->
+<div class="topnav">
+    <div class="topnav-left">
+        <a class="logo" href="/">BookForge</a>
+        <span class="sep">/</span>
+        <span class="page-title-nav">{{ book.title }}</span>
+    </div>
+    <div style="display:flex; align-items:center; gap:12px;">
+        <span class="badge {{ book.status_outline_notes }}">{{ book.status_outline_notes }}</span>
+        <a class="back-btn" href="/">← Library</a>
+    </div>
+</div>
+
+<!-- Sidebar -->
+<div class="sidebar">
+    <!-- Book info -->
+    <div style="margin-bottom:24px; padding-bottom:20px; border-bottom:1px solid rgba(255,255,255,0.05);">
+        <div style="font-size:11px; color:#475569; text-transform:uppercase; letter-spacing:1px; margin-bottom:8px; font-weight:700;">Book</div>
+        <div style="font-size:13px; font-weight:700; color:#f1f5f9; line-height:1.4;">{{ book.title }}</div>
     </div>
 
-    <!-- Chapters -->
+    <!-- Progress ring -->
     {% if chapters %}
-    <div class="card">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
-            <h2>📖 Chapters</h2>
-            {% if book.status_outline_notes == "approved" %}
-            <form action="/book/{{ book.id }}/generate-chapter" method="post">
-                <button class="btn-blue" type="submit">⚡ Generate Next Chapter</button>
+    {% set approved_count = chapters | selectattr("chapter_notes_status", "equalto", "approved") | list | length %}
+    {% set total = chapters | length %}
+    {% set pct = (approved_count / total * 100) | int %}
+    <div style="text-align:center; margin-bottom:24px;">
+        <svg width="80" height="80" viewBox="0 0 80 80" class="ring-progress" style="margin:0 auto; display:block;">
+            <defs>
+                <linearGradient id="ringGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" stop-color="#6d28d9"/>
+                    <stop offset="100%" stop-color="#06b6d4"/>
+                </linearGradient>
+            </defs>
+            <circle class="ring-track" cx="40" cy="40" r="32"/>
+            <circle class="ring-fill"
+                cx="40" cy="40" r="32"
+                stroke-dasharray="{{ (2 * 3.14159 * 32) | round(1) }}"
+                stroke-dashoffset="{{ ((1 - pct/100) * 2 * 3.14159 * 32) | round(1) }}"/>
+        </svg>
+        <div style="font-family:'Syne',sans-serif; font-size:22px; font-weight:800; margin-top:8px; background:linear-gradient(135deg,#c4b5fd,#06b6d4); -webkit-background-clip:text; -webkit-text-fill-color:transparent;">{{ pct }}%</div>
+        <div style="font-size:11px; color:#475569; margin-top:2px;">{{ approved_count }} / {{ total }} approved</div>
+    </div>
+    {% endif %}
+
+    <!-- Chapter list -->
+    <div style="font-size:11px; color:#475569; text-transform:uppercase; letter-spacing:1px; margin-bottom:10px; font-weight:700; padding:0 4px;">Chapters</div>
+    {% for chapter in chapters %}
+    <a class="ch-sidebar-item" href="#ch-{{ chapter.chapter_number }}">
+        <div class="ch-num-badge {% if chapter.content and chapter.chapter_notes_status == 'approved' %}approved{% elif chapter.content and chapter.chapter_notes_status == 'needs_changes' %}needs_changes{% elif chapter.content %}pending{% else %}empty{% endif %}">
+            {{ chapter.chapter_number }}
+        </div>
+        <div style="overflow:hidden;">
+            <div style="font-size:12px; font-weight:600; color:#cbd5e1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ chapter.title }}</div>
+            <div style="font-size:10px; color:#475569; margin-top:1px; text-transform:capitalize;">{{ chapter.chapter_notes_status }}</div>
+        </div>
+    </a>
+    {% endfor %}
+</div>
+
+<!-- Main Content -->
+<div class="content-area" style="padding-top: 92px;">
+
+    {% if request.query_params.get('compiled') %}
+    <div class="alert-success">✅ Book compiled, exported to DOCX & PDF, and emailed!</div>
+    {% endif %}
+
+    <!-- Outline Card -->
+    <div class="card glow-border fade-in">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+            <div style="display:flex; align-items:center; gap:10px;">
+                <div style="width:32px;height:32px;background:linear-gradient(135deg,rgba(139,92,246,0.2),rgba(6,182,212,0.1));border:1px solid rgba(139,92,246,0.2);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:14px;">◈</div>
+                <div>
+                    <div style="font-size:14px;font-weight:700;color:#f1f5f9;">Book Outline</div>
+                    <div style="font-size:11px;color:#475569;margin-top:1px;">AI-generated structure</div>
+                </div>
+            </div>
+            {% if book.status_outline_notes == "pending" %}
+            <form action="/book/{{ book.id }}/approve-outline" method="post">
+                <button class="btn btn-success" type="submit">✦ Approve & Parse Chapters</button>
             </form>
             {% endif %}
         </div>
+        <div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.04);border-radius:12px;padding:20px;font-size:12px;color:#64748b;white-space:pre-wrap;max-height:260px;overflow-y:auto;line-height:1.8;font-family:'Inter',sans-serif;">{{ book.outline }}</div>
+    </div>
 
+    <!-- Chapters Section -->
+    {% if chapters %}
+    {% set approved_count = chapters | selectattr("chapter_notes_status", "equalto", "approved") | list | length %}
+    {% set total = chapters | length %}
+
+    <div class="card fade-in" style="animation-delay:0.1s;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+            <div style="display:flex;align-items:center;gap:10px;">
+                <div style="width:32px;height:32px;background:linear-gradient(135deg,rgba(139,92,246,0.2),rgba(6,182,212,0.1));border:1px solid rgba(139,92,246,0.2);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:14px;">≡</div>
+                <div>
+                    <div style="font-size:14px;font-weight:700;color:#f1f5f9;">Chapters</div>
+                    <div style="font-size:11px;color:#475569;margin-top:1px;">{{ approved_count }} of {{ total }} approved</div>
+                </div>
+            </div>
+            {% if book.status_outline_notes == "approved" %}
+            <div style="display:flex;gap:10px;">
+            <form action="/book/{{ book.id }}/generate-chapter" method="post">
+                <button class="btn btn-primary" type="submit">⚡ Generate Next</button>
+            </form>
+            <form action="/book/{{ book.id }}/approve-all-chapters" method="post">
+                <button class="btn btn-success" type="submit">✅ Approve All</button>
+            </form>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Progress -->
+        <div style="margin-bottom:24px;">
+            <div style="display:flex;justify-content:space-between;font-size:11px;color:#475569;margin-bottom:8px;">
+                <span>Generation Progress</span>
+                <span style="color:#8b5cf6;font-weight:700;">{{ (approved_count / total * 100) | int }}%</span>
+            </div>
+            <div class="prog-track">
+                <div class="prog-fill" style="width:{{ (approved_count / total * 100) | int }}%;"></div>
+            </div>
+        </div>
+
+        <!-- Chapter Cards -->
         {% for chapter in chapters %}
-        <div class="chapter">
-            <div class="chapter-header">
-                <strong>Chapter {{ chapter.chapter_number }}: {{ chapter.title }}</strong>
+        <div class="chapter-card {% if chapter.chapter_notes_status == 'approved' %}approved-card{% elif chapter.chapter_notes_status == 'needs_changes' %}needs-card{% endif %}" id="ch-{{ chapter.chapter_number }}">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;">
+                <div>
+                    <div style="font-size:10px;color:#8b5cf6;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">Chapter {{ chapter.chapter_number }}</div>
+                    <div style="font-size:14px;font-weight:700;color:#f1f5f9;">{{ chapter.title }}</div>
+                </div>
                 <span class="badge {{ chapter.chapter_notes_status }}">{{ chapter.chapter_notes_status }}</span>
             </div>
 
             {% if chapter.content %}
-            <div class="chapter-content">{{ chapter.content }}</div>
-            <div class="chapter-actions">
+            <div class="ch-content-box">{{ chapter.content }}</div>
+            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
                 {% if chapter.chapter_notes_status != "approved" %}
                 <form action="/chapter/{{ chapter.id }}/approve" method="post">
                     <input type="hidden" name="book_id" value="{{ book.id }}">
-                    <button class="btn-green" type="submit">✅ Approve</button>
+                    <button class="btn btn-success" type="submit">✓ Approve</button>
                 </form>
-                <form action="/chapter/{{ chapter.id }}/needs-changes" method="post" style="display:flex; gap:8px;">
+                <form action="/chapter/{{ chapter.id }}/needs-changes" method="post" style="display:flex;gap:8px;flex:1;">
                     <input type="hidden" name="book_id" value="{{ book.id }}">
-                    <input type="text" name="notes" placeholder="Enter change notes...">
-                    <button class="btn-red" type="submit">🔄 Needs Changes</button>
+                    <input class="inp" type="text" name="notes" placeholder="What needs to change?" style="flex:1;">
+                    <button class="btn btn-danger" type="submit">↺ Revise</button>
                 </form>
                 {% endif %}
             </div>
             {% else %}
-            <p style="color:#aaa; font-size:13px;">Not generated yet.</p>
+            <div style="font-size:12px;color:#334155;display:flex;align-items:center;gap:8px;">
+                <span style="width:6px;height:6px;border-radius:50%;background:#1e293b;display:inline-block;"></span>
+                Not generated yet
+            </div>
             {% endif %}
         </div>
         {% endfor %}
     </div>
     {% endif %}
 
-    <!-- Compile & Export -->
+    <!-- Compile -->
     {% set all_approved = chapters | selectattr("chapter_notes_status", "equalto", "approved") | list | length == chapters | length and chapters | length > 0 %}
     {% if all_approved %}
-    <div class="card">
-        <h2 style="margin-bottom:14px;">🚀 Compile & Export</h2>
-        <form action="/book/{{ book.id }}/compile" method="post" style="display:flex; gap:10px; align-items:center;">
-            <input type="email" name="email" placeholder="Enter email to receive book" required>
-            <button class="btn-green" type="submit">📧 Compile & Send</button>
+    <div class="card compile-card fade-in" style="animation-delay:0.2s;">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px;">
+            <div style="width:32px;height:32px;background:linear-gradient(135deg,rgba(139,92,246,0.25),rgba(6,182,212,0.15));border:1px solid rgba(139,92,246,0.3);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:14px;">⬡</div>
+            <div>
+                <div style="font-size:14px;font-weight:700;color:#f1f5f9;">Compile & Export</div>
+                <div style="font-size:11px;color:#8b5cf6;margin-top:1px;">All chapters approved — ready to export</div>
+            </div>
+        </div>
+        <form action="/book/{{ book.id }}/compile" method="post" style="display:flex;gap:12px;align-items:center;margin-bottom:16px;">
+            <input class="inp" type="email" name="email" placeholder="Recipient email address" required style="flex:1;">
+            <button class="btn btn-primary" type="submit" style="white-space:nowrap;">→ Compile & Send</button>
         </form>
         {% if book.final_review_notes_status == "approved" %}
-        <br>
-        <a href="/book/{{ book.id }}/download"><button class="btn-blue">⬇️ Download DOCX</button></a>
-        <a href="/book/{{ book.id }}/download-pdf"><button class="btn-red">⬇️ Download PDF</button></a>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+            <a href="/book/{{ book.id }}/download"><button class="btn btn-info">⬇ Download DOCX</button></a>
+            <a href="/book/{{ book.id }}/download-pdf"><button class="btn btn-ghost">⬇ Download PDF</button></a>
+        </div>
         {% endif %}
     </div>
     {% endif %}
+
+</div>
+
+<script>
+    // Highlight active chapter in sidebar on scroll
+    const items = document.querySelectorAll('.ch-sidebar-item');
+    const cards = document.querySelectorAll('.chapter-card');
+    window.addEventListener('scroll', () => {
+        let current = '';
+        cards.forEach(card => {
+            if (window.scrollY >= card.offsetTop - 120) current = card.id;
+        });
+        items.forEach(item => {
+            item.classList.remove('active');
+            if (item.getAttribute('href') === '#' + current) item.classList.add('active');
+        });
+    });
+</script>
 
 </body>
 </html>

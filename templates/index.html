@@ -2,48 +2,901 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Book Generator</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BookForge — AI Book Generation Platform</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Syne:wght@700;800&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --bg:        #020309;
+            --surface:   #080c1a;
+            --surface2:  #0d1228;
+            --border:    rgba(255,255,255,0.05);
+            --accent:    #6d28d9;
+            --neon:      #8b5cf6;
+            --cyan:      #06b6d4;
+            --pink:      #ec4899;
+            --green:     #10b981;
+            --yellow:    #f59e0b;
+            --red:       #ef4444;
+            --text:      #f1f5f9;
+            --muted:     #475569;
+            --dim:       #94a3b8;
+        }
+
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: Arial, sans-serif; background: #f4f4f4; padding: 40px; }
-        h1 { margin-bottom: 30px; color: #333; }
-        .card { background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); max-width: 600px; margin-bottom: 30px; }
-        input, textarea { width: 100%; padding: 10px; margin: 10px 0 20px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; }
-        textarea { height: 100px; resize: vertical; }
-        button { background: #4CAF50; color: white; padding: 10px 24px; border: none; border-radius: 6px; cursor: pointer; font-size: 15px; }
-        button:hover { background: #45a049; }
-        .book-list { max-width: 600px; }
-        .book-item { background: white; padding: 16px 20px; border-radius: 8px; margin-bottom: 12px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); display: flex; justify-content: space-between; align-items: center; }
-        .book-item a { text-decoration: none; color: #2196F3; font-weight: bold; }
-        .badge { padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: bold; }
-        .pending { background: #fff3cd; color: #856404; }
-        .approved { background: #d4edda; color: #155724; }
+
+        html { scroll-behavior: smooth; }
+
+        body {
+            font-family: 'Space Grotesk', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* ── Grid Background ── */
+        .grid-bg {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            background-image:
+                linear-gradient(rgba(109,40,217,0.04) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(109,40,217,0.04) 1px, transparent 1px);
+            background-size: 48px 48px;
+            mask-image: radial-gradient(ellipse 80% 80% at 50% 0%, black 30%, transparent 100%);
+        }
+
+        /* ── Orbs ── */
+        .orb {
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(80px);
+            pointer-events: none;
+            z-index: 0;
+        }
+        .orb-1 {
+            width: 600px; height: 600px;
+            background: radial-gradient(circle, rgba(109,40,217,0.12), transparent 70%);
+            top: -200px; left: -100px;
+            animation: floatOrb 12s ease-in-out infinite alternate;
+        }
+        .orb-2 {
+            width: 500px; height: 500px;
+            background: radial-gradient(circle, rgba(6,182,212,0.08), transparent 70%);
+            top: 30%; right: -150px;
+            animation: floatOrb 15s ease-in-out infinite alternate-reverse;
+        }
+        .orb-3 {
+            width: 400px; height: 400px;
+            background: radial-gradient(circle, rgba(236,72,153,0.06), transparent 70%);
+            bottom: -100px; left: 30%;
+            animation: floatOrb 10s ease-in-out infinite alternate;
+        }
+        @keyframes floatOrb {
+            from { transform: translate(0, 0) scale(1); }
+            to   { transform: translate(30px, 20px) scale(1.05); }
+        }
+
+        /* ── Navbar ── */
+        nav {
+            position: fixed;
+            top: 16px; left: 50%;
+            transform: translateX(-50%);
+            z-index: 1000;
+            width: calc(100% - 48px);
+            max-width: 1100px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 24px;
+            background: rgba(8,12,26,0.7);
+            backdrop-filter: blur(24px);
+            border: 1px solid rgba(139,92,246,0.15);
+            border-radius: 16px;
+            box-shadow: 0 0 0 1px rgba(255,255,255,0.03), 0 20px 40px rgba(0,0,0,0.4);
+        }
+        .nav-logo {
+            font-family: 'Syne', sans-serif;
+            font-size: 20px;
+            font-weight: 800;
+            background: linear-gradient(135deg, #c4b5fd 0%, #8b5cf6 50%, #06b6d4 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.5px;
+        }
+        .nav-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(16,185,129,0.08);
+            border: 1px solid rgba(16,185,129,0.15);
+            border-radius: 100px;
+            padding: 6px 14px;
+        }
+        .status-dot {
+            width: 7px; height: 7px;
+            border-radius: 50%;
+            background: var(--green);
+            box-shadow: 0 0 10px var(--green);
+            animation: statusPulse 2s infinite;
+        }
+        @keyframes statusPulse {
+            0%, 100% { box-shadow: 0 0 10px var(--green); }
+            50% { box-shadow: 0 0 20px var(--green), 0 0 40px rgba(16,185,129,0.3); }
+        }
+        .status-text { font-size: 12px; color: var(--green); font-weight: 500; }
+        .nav-version {
+            font-size: 12px;
+            color: var(--muted);
+            background: rgba(255,255,255,0.04);
+            border: 1px solid var(--border);
+            padding: 5px 12px;
+            border-radius: 8px;
+        }
+
+        /* ── Main ── */
+        .main { position: relative; z-index: 1; padding-top: 60px; }
+
+        /* ── Hero ── */
+        .hero {
+            position: relative;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            overflow: hidden;
+            padding: 0 24px;
+        }
+
+        /* Canvas particles */
+        #hero-canvas {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        /* Big beam of light from top */
+        .hero-beam {
+            position: absolute;
+            top: -100px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 2px;
+            height: 60%;
+            background: linear-gradient(180deg, rgba(139,92,246,0.8), rgba(6,182,212,0.3), transparent);
+            filter: blur(1px);
+            animation: beamPulse 3s ease-in-out infinite;
+            z-index: 0;
+        }
+        .hero-beam::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 50%;
+            transform: translateX(-50%);
+            width: 200px;
+            height: 200px;
+            background: radial-gradient(ellipse, rgba(139,92,246,0.15), transparent 70%);
+            filter: blur(20px);
+        }
+        @keyframes beamPulse {
+            0%, 100% { opacity: 0.6; }
+            50% { opacity: 1; }
+        }
+
+        /* Horizontal scan line */
+        .scan-line {
+            position: absolute;
+            left: 0; right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(139,92,246,0.4), rgba(6,182,212,0.4), transparent);
+            animation: scanDown 8s linear infinite;
+            z-index: 0;
+            pointer-events: none;
+        }
+        @keyframes scanDown {
+            0%   { top: -2px; opacity: 0; }
+            5%   { opacity: 1; }
+            95%  { opacity: 1; }
+            100% { top: 100%; opacity: 0; }
+        }
+
+        /* Corner brackets */
+        .corner { position: absolute; width: 40px; height: 40px; z-index: 1; }
+        .corner-tl { top: 40px; left: 40px; border-top: 1px solid rgba(139,92,246,0.4); border-left: 1px solid rgba(139,92,246,0.4); }
+        .corner-tr { top: 40px; right: 40px; border-top: 1px solid rgba(139,92,246,0.4); border-right: 1px solid rgba(139,92,246,0.4); }
+        .corner-bl { bottom: 40px; left: 40px; border-bottom: 1px solid rgba(139,92,246,0.4); border-left: 1px solid rgba(139,92,246,0.4); }
+        .corner-br { bottom: 40px; right: 40px; border-bottom: 1px solid rgba(139,92,246,0.4); border-right: 1px solid rgba(139,92,246,0.4); }
+
+        /* Hero content */
+        .hero-content { position: relative; z-index: 2; }
+
+        .hero-eyebrow {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(139,92,246,0.06);
+            border: 1px solid rgba(139,92,246,0.2);
+            border-radius: 100px;
+            padding: 8px 20px;
+            font-size: 11px;
+            color: #c4b5fd;
+            font-weight: 600;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin-bottom: 48px;
+            opacity: 0;
+            animation: fadeSlideDown 0.8s 0.3s ease forwards;
+        }
+        .eyebrow-dot {
+            width: 6px; height: 6px;
+            border-radius: 50%;
+            background: var(--neon);
+            box-shadow: 0 0 8px var(--neon);
+            animation: statusPulse 2s infinite;
+        }
+
+        /* Giant title with split animation */
+        .hero-title {
+            font-family: 'Syne', sans-serif;
+            font-weight: 800;
+            line-height: 0.9;
+            letter-spacing: -5px;
+            margin-bottom: 32px;
+            perspective: 1000px;
+        }
+        .title-top {
+            display: block;
+            font-size: 110px;
+            color: #ffffff;
+            opacity: 0;
+            transform: translateY(-60px) rotateX(40deg);
+            animation: titleDropIn 1s 0.5s cubic-bezier(0.16,1,0.3,1) forwards;
+            text-shadow:
+                0 0 80px rgba(255,255,255,0.1),
+                0 2px 0 rgba(255,255,255,0.05);
+        }
+        .title-bottom {
+            display: block;
+            font-size: 110px;
+            opacity: 0;
+            transform: translateY(60px) rotateX(-40deg);
+            animation: titleRiseIn 1s 0.6s cubic-bezier(0.16,1,0.3,1) forwards;
+            background: linear-gradient(90deg, #a78bfa, #c4b5fd, #06b6d4, #a78bfa);
+            background-size: 300% auto;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: titleRiseIn 1s 0.6s cubic-bezier(0.16,1,0.3,1) forwards,
+                       shimmerText 5s 1.6s linear infinite;
+        }
+        @keyframes titleDropIn {
+            to { opacity: 1; transform: translateY(0) rotateX(0deg); }
+        }
+        @keyframes titleRiseIn {
+            to { opacity: 1; transform: translateY(0) rotateX(0deg); }
+        }
+        @keyframes shimmerText {
+            0%   { background-position: 0% center; }
+            100% { background-position: 300% center; }
+        }
+
+        /* Typewriter subtitle */
+        .hero-sub {
+            font-size: 17px;
+            color: #64748b;
+            max-width: 500px;
+            margin: 0 auto 48px;
+            line-height: 1.7;
+            min-height: 28px;
+            opacity: 0;
+            animation: fadeIn 0.5s 1.4s ease forwards;
+        }
+        .cursor {
+            display: inline-block;
+            width: 2px;
+            height: 1em;
+            background: var(--neon);
+            margin-left: 2px;
+            vertical-align: text-bottom;
+            animation: blink 0.8s infinite;
+        }
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
+        }
+        @keyframes fadeIn {
+            to { opacity: 1; }
+        }
+
+        /* Stats bar */
+        .stats-bar {
+            display: inline-flex;
+            align-items: center;
+            background: rgba(8,12,26,0.9);
+            border: 1px solid rgba(139,92,246,0.12);
+            border-radius: 16px;
+            overflow: hidden;
+            backdrop-filter: blur(20px);
+            box-shadow: 0 0 60px rgba(109,40,217,0.08), inset 0 1px 0 rgba(255,255,255,0.04);
+            opacity: 0;
+            animation: fadeSlideDown 0.8s 1.6s ease forwards;
+        }
+        .stat-cell {
+            padding: 20px 40px;
+            text-align: center;
+            position: relative;
+            transition: background 0.3s;
+            cursor: default;
+        }
+        .stat-cell:hover { background: rgba(139,92,246,0.06); }
+        .stat-cell + .stat-cell::before {
+            content: '';
+            position: absolute;
+            left: 0; top: 20%; height: 60%;
+            width: 1px;
+            background: rgba(255,255,255,0.05);
+        }
+        .stat-n {
+            font-family: 'Syne', sans-serif;
+            font-size: 30px;
+            font-weight: 800;
+            background: linear-gradient(135deg, #c4b5fd, #8b5cf6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            transition: transform 0.3s;
+        }
+        .stat-cell:hover .stat-n { transform: scale(1.1); }
+        .stat-l {
+            font-size: 10px;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            margin-top: 4px;
+        }
+
+        /* Scroll indicator */
+        .scroll-hint {
+            position: absolute;
+            bottom: 32px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            color: #334155;
+            font-size: 10px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            opacity: 0;
+            animation: fadeIn 0.5s 2s ease forwards;
+            z-index: 2;
+        }
+        .scroll-mouse {
+            width: 20px; height: 32px;
+            border: 1px solid #334155;
+            border-radius: 10px;
+            display: flex;
+            justify-content: center;
+            padding-top: 6px;
+        }
+        .scroll-wheel {
+            width: 2px; height: 6px;
+            background: #8b5cf6;
+            border-radius: 2px;
+            animation: scrollBounce 1.5s ease-in-out infinite;
+        }
+        @keyframes scrollBounce {
+            0%, 100% { transform: translateY(0); opacity: 1; }
+            100% { transform: translateY(8px); opacity: 0; }
+        }
+
+        /* ── Container ── */
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 0 24px 100px;
+        }
+
+        /* ── Grid ── */
+        .two-col {
+            display: grid;
+            grid-template-columns: 1fr 1.15fr;
+            gap: 24px;
+            align-items: start;
+        }
+
+        /* ── Card ── */
+        .card {
+            background: rgba(8,12,26,0.8);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 24px;
+            padding: 36px;
+            position: relative;
+            overflow: hidden;
+            transition: border-color 0.3s, box-shadow 0.3s, transform 0.3s;
+            animation: fadeSlideUp 0.8s 0.4s ease both;
+        }
+        .card:hover {
+            border-color: rgba(139,92,246,0.25);
+            box-shadow: 0 0 60px rgba(109,40,217,0.08), 0 20px 60px rgba(0,0,0,0.3);
+            transform: translateY(-2px);
+        }
+        .card-glow {
+            position: absolute;
+            top: -1px; left: 0; right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent 0%, rgba(139,92,246,0.5) 50%, transparent 100%);
+        }
+        .card-corner {
+            position: absolute;
+            top: 0; right: 0;
+            width: 100px; height: 100px;
+            background: radial-gradient(circle at top right, rgba(139,92,246,0.08), transparent 70%);
+        }
+
+        .card-head {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 28px;
+        }
+        .card-icon-wrap {
+            width: 40px; height: 40px;
+            background: linear-gradient(135deg, rgba(139,92,246,0.2), rgba(6,182,212,0.1));
+            border: 1px solid rgba(139,92,246,0.2);
+            border-radius: 12px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 18px;
+            flex-shrink: 0;
+        }
+        .card-head-text {}
+        .card-head-title {
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--text);
+        }
+        .card-head-sub {
+            font-size: 12px;
+            color: var(--muted);
+            margin-top: 1px;
+        }
+
+        /* ── Form ── */
+        .field { margin-bottom: 20px; }
+        .field-label {
+            display: block;
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+        }
+        .field-input {
+            width: 100%;
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.07);
+            border-radius: 12px;
+            padding: 13px 16px;
+            font-size: 14px;
+            color: var(--text);
+            font-family: 'Space Grotesk', sans-serif;
+            outline: none;
+            transition: all 0.2s;
+        }
+        .field-input:focus {
+            border-color: rgba(139,92,246,0.5);
+            background: rgba(139,92,246,0.04);
+            box-shadow: 0 0 0 3px rgba(109,40,217,0.1), 0 0 20px rgba(139,92,246,0.05);
+        }
+        textarea.field-input { height: 110px; resize: vertical; }
+        .field-input::placeholder { color: #1e293b; }
+
+        .btn-generate {
+            width: 100%;
+            background: linear-gradient(135deg, #6d28d9 0%, #7c3aed 50%, #8b5cf6 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            padding: 15px;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            font-family: 'Space Grotesk', sans-serif;
+            letter-spacing: 0.5px;
+            transition: all 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+        .btn-generate::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, rgba(255,255,255,0.1), transparent);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .btn-generate:hover {
+            box-shadow: 0 8px 30px rgba(109,40,217,0.4), 0 0 60px rgba(139,92,246,0.15);
+            transform: translateY(-2px);
+        }
+        .btn-generate:hover::before { opacity: 1; }
+        .btn-generate:active { transform: translateY(0); }
+
+        /* ── Book List ── */
+        .list-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .list-count {
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--neon);
+            background: rgba(139,92,246,0.1);
+            border: 1px solid rgba(139,92,246,0.15);
+            padding: 4px 10px;
+            border-radius: 100px;
+            letter-spacing: 0.5px;
+        }
+
+        /* Mini stats */
+        .mini-stats {
+            display: grid;
+            grid-template-columns: repeat(3,1fr);
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .mini-stat {
+            background: rgba(255,255,255,0.02);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 14px;
+            text-align: center;
+            transition: border-color 0.2s;
+        }
+        .mini-stat:hover { border-color: rgba(139,92,246,0.2); }
+        .mini-stat-n {
+            font-family: 'Syne', sans-serif;
+            font-size: 24px;
+            font-weight: 800;
+            background: linear-gradient(135deg, #c4b5fd, #8b5cf6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .mini-stat-l { font-size: 11px; color: var(--muted); margin-top: 3px; }
+
+        .book-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 16px;
+            border-radius: 12px;
+            background: rgba(255,255,255,0.02);
+            border: 1px solid var(--border);
+            margin-bottom: 8px;
+            text-decoration: none;
+            transition: all 0.2s;
+            position: relative;
+            overflow: hidden;
+        }
+        .book-row::before {
+            content: '';
+            position: absolute;
+            left: 0; top: 0; bottom: 0;
+            width: 3px;
+            background: linear-gradient(180deg, var(--neon), var(--cyan));
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+        .book-row:hover {
+            background: rgba(139,92,246,0.06);
+            border-color: rgba(139,92,246,0.2);
+            transform: translateX(4px);
+        }
+        .book-row:hover::before { opacity: 1; }
+        .book-row:last-child { margin-bottom: 0; }
+
+        .book-row-left { display: flex; align-items: center; gap: 12px; }
+        .book-indicator {
+            width: 8px; height: 8px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        .book-indicator.approved { background: var(--green); box-shadow: 0 0 8px var(--green); }
+        .book-indicator.pending { background: var(--yellow); box-shadow: 0 0 8px var(--yellow); }
+        .book-indicator.needs_changes { background: var(--red); box-shadow: 0 0 8px var(--red); }
+
+        .book-name { font-size: 13px; font-weight: 600; color: var(--text); }
+        .book-sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+        .badge {
+            font-size: 10px;
+            font-weight: 700;
+            padding: 4px 10px;
+            border-radius: 100px;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+        }
+        .badge.pending { background: rgba(245,158,11,0.1); color: var(--yellow); border: 1px solid rgba(245,158,11,0.2); }
+        .badge.approved { background: rgba(16,185,129,0.1); color: var(--green); border: 1px solid rgba(16,185,129,0.2); }
+        .badge.needs_changes { background: rgba(239,68,68,0.1); color: var(--red); border: 1px solid rgba(239,68,68,0.2); }
+
+        .empty-state {
+            text-align: center;
+            padding: 50px 20px;
+        }
+        .empty-glyph {
+            font-size: 40px;
+            margin-bottom: 12px;
+            opacity: 0.2;
+            display: block;
+        }
+        .empty-text { font-size: 13px; color: var(--muted); }
+
+        /* ── Animations ── */
+        @keyframes fadeSlideDown {
+            from { opacity: 0; transform: translateY(-20px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes fadeSlideUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        /* ── Footer ── */
+        footer {
+            position: relative; z-index: 1;
+            text-align: center;
+            padding: 24px;
+            border-top: 1px solid var(--border);
+            font-size: 12px;
+            color: var(--muted);
+        }
+        footer span { color: var(--neon); }
     </style>
 </head>
 <body>
-    <h1>📚 Book Generator</h1>
 
-    <div class="card">
-        <h2 style="margin-bottom:16px;">Create New Book</h2>
-        <form action="/create-book" method="post">
-            <label>Book Title</label>
-            <input type="text" name="title" placeholder="Enter book title" required>
-            <label>Notes / Instructions</label>
-            <textarea name="notes" placeholder="Describe what the book should cover..." required></textarea>
-            <button type="submit">Generate Outline</button>
-        </form>
+<div class="grid-bg"></div>
+<div class="orb orb-1"></div>
+<div class="orb orb-2"></div>
+<div class="orb orb-3"></div>
+
+<!-- Navbar -->
+<nav>
+    <div class="nav-logo">BookForge</div>
+    <div class="nav-status">
+        <div class="status-dot"></div>
+        <span class="status-text">LLaMA 3.3 · 70B · Online</span>
     </div>
+    <div class="nav-version">v1.0.0</div>
+</nav>
 
-    {% if books %}
-    <div class="book-list">
-        <h2 style="margin-bottom:16px;">Existing Books</h2>
-        {% for book in books %}
-        <div class="book-item">
-            <a href="/book/{{ book.id }}">{{ book.title }}</a>
-            <span class="badge {{ book.status_outline_notes }}">{{ book.status_outline_notes }}</span>
+<div class="main">
+
+    <!-- Hero -->
+    <div class="hero">
+        <canvas id="hero-canvas"></canvas>
+        <div class="hero-beam"></div>
+        <div class="scan-line"></div>
+        <div class="corner corner-tl"></div>
+        <div class="corner corner-tr"></div>
+        <div class="corner corner-bl"></div>
+        <div class="corner corner-br"></div>
+
+        <div class="hero-content">
+            <div class="hero-eyebrow">
+                <div class="eyebrow-dot"></div>
+                AI-Powered Book Generation Platform
+            </div>
+            <h1 class="hero-title">
+                <span class="title-top">From Idea</span>
+                <span class="title-bottom">To Full Book.</span>
+            </h1>
+            <p class="hero-sub" id="typewriter-text"><span class="cursor"></span></p>
+            <div class="stats-bar">
+                <div class="stat-cell">
+                    <div class="stat-n">12+</div>
+                    <div class="stat-l">Chapters</div>
+                </div>
+                <div class="stat-cell">
+                    <div class="stat-n">3</div>
+                    <div class="stat-l">Export Formats</div>
+                </div>
+                <div class="stat-cell">
+                    <div class="stat-n">∞</div>
+                    <div class="stat-l">Books</div>
+                </div>
+                <div class="stat-cell">
+                    <div class="stat-n">100%</div>
+                    <div class="stat-l">AI Generated</div>
+                </div>
+            </div>
         </div>
-        {% endfor %}
+
+        <div class="scroll-hint">
+            <div class="scroll-mouse"><div class="scroll-wheel"></div></div>
+            <span>Scroll</span>
+        </div>
     </div>
-    {% endif %}
+
+    <!-- Content -->
+    <div class="container">
+        <div class="two-col">
+
+            <!-- Create -->
+            <div class="card">
+                <div class="card-glow"></div>
+                <div class="card-corner"></div>
+                <div class="card-head">
+                    <div class="card-icon-wrap">✦</div>
+                    <div class="card-head-text">
+                        <div class="card-head-title">New Book</div>
+                        <div class="card-head-sub">Start generating in seconds</div>
+                    </div>
+                </div>
+                <form action="/create-book" method="post">
+                    <div class="field">
+                        <label class="field-label">Book Title</label>
+                        <input class="field-input" type="text" name="title" placeholder="e.g. The Art of Deep Focus" required>
+                    </div>
+                    <div class="field">
+                        <label class="field-label">Notes & Instructions</label>
+                        <textarea class="field-input" name="notes" placeholder="Topics, tone, audience, key ideas..." required></textarea>
+                    </div>
+                    <button class="btn-generate" type="submit">Generate Outline →</button>
+                </form>
+            </div>
+
+            <!-- Library -->
+            <div class="card">
+                <div class="card-glow"></div>
+                <div class="card-corner"></div>
+                <div class="card-head">
+                    <div class="card-icon-wrap">◈</div>
+                    <div class="card-head-text">
+                        <div class="card-head-title">Library</div>
+                        <div class="card-head-sub">All your generated books</div>
+                    </div>
+                </div>
+
+                {% if books %}
+                {% set approved_count = books | selectattr("status_outline_notes", "equalto", "approved") | list | length %}
+                {% set pending_count = books | selectattr("status_outline_notes", "equalto", "pending") | list | length %}
+
+                <div class="mini-stats">
+                    <div class="mini-stat">
+                        <div class="mini-stat-n">{{ books | length }}</div>
+                        <div class="mini-stat-l">Total</div>
+                    </div>
+                    <div class="mini-stat">
+                        <div class="mini-stat-n">{{ approved_count }}</div>
+                        <div class="mini-stat-l">Active</div>
+                    </div>
+                    <div class="mini-stat">
+                        <div class="mini-stat-n">{{ pending_count }}</div>
+                        <div class="mini-stat-l">Pending</div>
+                    </div>
+                </div>
+
+                {% for book in books %}
+                <a class="book-row" href="/book/{{ book.id }}">
+                    <div class="book-row-left">
+                        <div class="book-indicator {{ book.status_outline_notes }}"></div>
+                        <div>
+                            <div class="book-name">{{ book.title }}</div>
+                            <div class="book-sub">{{ book.status_outline_notes | capitalize }}</div>
+                        </div>
+                    </div>
+                    <span class="badge {{ book.status_outline_notes }}">{{ book.status_outline_notes }}</span>
+                </a>
+                {% endfor %}
+
+                {% else %}
+                <div class="empty-state">
+                    <span class="empty-glyph">📚</span>
+                    <p class="empty-text">No books yet. Create your first one.</p>
+                </div>
+                {% endif %}
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<footer>
+    Built with <span>BookForge</span> · Groq · Supabase · FastAPI
+</footer>
+
+<script>
+// ── Canvas Particle Network ──
+const canvas = document.getElementById('hero-canvas');
+const ctx = canvas.getContext('2d');
+let W, H, particles = [];
+
+function resize() {
+    const hero = canvas.parentElement;
+    W = canvas.width = hero.offsetWidth;
+    H = canvas.height = hero.offsetHeight;
+}
+resize();
+window.addEventListener('resize', resize);
+
+class Particle {
+    constructor() { this.reset(); }
+    reset() {
+        this.x = Math.random() * W;
+        this.y = Math.random() * H;
+        this.vx = (Math.random() - 0.5) * 0.4;
+        this.vy = (Math.random() - 0.5) * 0.4;
+        this.r = Math.random() * 1.5 + 0.5;
+        this.life = Math.random();
+    }
+    update() {
+        this.x += this.vx; this.y += this.vy;
+        this.life += 0.003;
+        if (this.x < 0 || this.x > W || this.y < 0 || this.y > H) this.reset();
+    }
+    draw() {
+        const a = Math.sin(this.life * Math.PI) * 0.6;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.r, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(139,92,246,${a})`;
+        ctx.fill();
+    }
+}
+
+for (let i = 0; i < 120; i++) particles.push(new Particle());
+
+function drawLines() {
+    for (let i = 0; i < particles.length; i++) {
+        for (let j = i + 1; j < particles.length; j++) {
+            const dx = particles[i].x - particles[j].x;
+            const dy = particles[i].y - particles[j].y;
+            const dist = Math.sqrt(dx*dx + dy*dy);
+            if (dist < 100) {
+                const a = (1 - dist/100) * 0.15;
+                ctx.beginPath();
+                ctx.moveTo(particles[i].x, particles[i].y);
+                ctx.lineTo(particles[j].x, particles[j].y);
+                ctx.strokeStyle = `rgba(139,92,246,${a})`;
+                ctx.lineWidth = 0.5;
+                ctx.stroke();
+            }
+        }
+    }
+}
+
+function loop() {
+    ctx.clearRect(0, 0, W, H);
+    particles.forEach(p => { p.update(); p.draw(); });
+    drawLines();
+    requestAnimationFrame(loop);
+}
+loop();
+
+// ── Typewriter ──
+const text = 'Transform any idea into a full-length, professionally structured book — powered by Groq LLaMA 3.3 with human review at every step.';
+const el = document.getElementById('typewriter-text');
+let i = 0;
+function type() {
+    if (i <= text.length) {
+        el.innerHTML = text.slice(0, i) + '<span class="cursor"></span>';
+        i++;
+        setTimeout(type, 28);
+    }
+}
+setTimeout(type, 1400);
+</script>
 </body>
 </html>

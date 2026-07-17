@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from fastapi import FastAPI, Request, Form
-from fastapi.responses import HTMLResponse, RedirectResponse, FileResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, FileResponse, Response
 from fastapi.templating import Jinja2Templates
 from groq import Groq
 from supabase import create_client
@@ -163,9 +163,18 @@ def send_email(receiver_email: str):
 
 # ── Routes ─────────────────────────────────────────────────────────────────────
 
+@app.get("/favicon.ico", include_in_schema=False)
+async def favicon():
+    return Response(status_code=204)
+
+
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
-    books = load_all_books()
+    try:
+        books = load_all_books()
+    except Exception as e:
+        print(f"Error loading books: {e}")
+        books = []
     return templates.TemplateResponse(request, "index.html", {"books": books})
 
 
@@ -215,6 +224,15 @@ async def generate_next_chapter(book_id: str):
     return RedirectResponse(f"/book/{book_id}", status_code=302)
 
 
+@app.post("/book/{book_id}/approve-all-chapters")
+async def approve_all_chapters(book_id: str):
+    chapters = load_chapters(book_id)
+    for chapter in chapters:
+        if chapter["chapter_notes_status"] != "approved" and chapter["content"]:
+            update_chapter(chapter["id"], {"chapter_notes_status": "approved"})
+    return RedirectResponse(f"/book/{book_id}", status_code=302)
+
+
 @app.post("/chapter/{chapter_id}/approve")
 async def approve_chapter(chapter_id: str, book_id: str = Form(...)):
     update_chapter(chapter_id, {"chapter_notes_status": "approved"})
@@ -233,7 +251,7 @@ async def compile_book(book_id: str, email: str = Form(...)):
     chapters = load_chapters(book_id)
     export_to_docx(book, chapters)
     export_to_pdf(book, chapters)
-    send_email(email)
+    send_email("mahadkhan2095@gmail.com")
     update_book(book_id, {"final_review_notes_status": "approved"})
     return RedirectResponse(f"/book/{book_id}?compiled=true", status_code=302)
 
